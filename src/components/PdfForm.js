@@ -1,109 +1,36 @@
-import React, { useState } from 'react';
-import styles from './PdfForm.module.css';
-import { createTransaction } from '../utils/arweave';
+require('dotenv').config();
+import mysql from 'mysql2';
 
-const PdfForm = ({ onTransactionComplete }) => {
-  const [formData, setFormData] = useState({
-    'Content-Type': 'application/pdf',
-    name: '',
-    description: '',
-    tags: [],
-    ownersWallet: '',
-    userId: '',
-    pdfFile: null,
-  });
-  const [error, setError] = useState('');
-  const [txId, setTxId] = useState('');
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: value,
+export default function handler(req, res) {
+  if (req.method === 'POST') {
+    const connection = mysql.createConnection({
+      host: process.env.DB_HOST,
+      user: process.env.DB_USER,
+      password: process.env.DB_PASSWORD,
+      database: process.env.DB_DATABASE,
+      port: process.env.DB_PORT,
     });
-  };
 
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    setFormData({
-      ...formData,
-      pdfFile: file,
+    console.log('Connected to database');
+
+    const { userId, txId } = req.body;
+    const formattedTxId = `https://arweave.net/${txId}`;
+
+    const sql = `INSERT INTO planitcontract_wordpress.uploads (upload_id, user_id, image_link) VALUES (NULL, ?, ?)`;
+    const values = [userId, formattedTxId];
+
+    connection.query(sql, values, (err, result) => {
+      if (err) {
+        console.error('Error inserting data into MySQL:', err);
+        res.status(500).json({ error: 'Error inserting data into MySQL' });
+        return;
+      }
+      console.log('1 record inserted');
+      res.status(200).json({ success: true });
     });
-  };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      const txId = await createTransaction(formData);
-      setTxId(txId);
-      setError('');
-
-      // Send data to API route
-      const response = await fetch('/api/uploadPdf', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ userId: formData.userId, txId }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to insert data into MySQL');
-      }
-
-      if (onTransactionComplete) {
-        onTransactionComplete(txId);
-      }
-    } catch (error) {
-      setError('Error submitting transaction: ' + error.message);
-    }
-  };
-
-  return (
-    <div className={styles.container}>
-      <h2>PDF Metadata Form</h2>
-      <form onSubmit={handleSubmit} className={styles.form}>
-        <div>
-          <label>Content-Type:</label>
-          <input type="text" name="Content-Type" value={formData['Content-Type']} onChange={handleChange} disabled />
-        </div>
-        <div>
-          <label>PDF File:</label>
-          <input type="file" name="pdfFile" onChange={handleFileChange} accept="application/pdf" />
-        </div>
-        <div>
-          <label>Name:</label>
-          <input type="text" name="name" value={formData.name} onChange={handleChange} />
-        </div>
-        <div>
-          <label>Description:</label>
-          <input type="text" name="description" value={formData.description} onChange={handleChange} />
-        </div>
-        <div>
-          <label>Tags:</label>
-          {formData.tags.map((tag, index) => (
-            <input key={index} type="text" value={tag} onChange={(e) => handleChange(e, index)} />
-          ))}
-          <button type="button" onClick={() => setFormData({ ...formData, tags: [...formData.tags, ''] })}>Add Tag</button>
-        </div>
-        <div>
-          <label>Owner's Wallet:</label>
-          <input type="text" name="ownersWallet" value={formData.ownersWallet} onChange={handleChange} />
-        </div>
-        <div>
-          <label>User ID:</label>
-          <input type="text" name="userId" value={formData.userId} onChange={handleChange} />
-        </div>
-        <button type="submit" className={styles.submitButton}>Submit</button>
-      </form>
-      {error && <p className={styles.error}>{error}</p>}
-      {txId && (
-        <p className={styles.txId}>
-          Transaction ID: <a href={`https://arweave.net/${txId}`} target="_blank" rel="noopener noreferrer">https://arweave.net/{txId}</a>
-        </p>
-      )}
-    </div>
-  );
-};
-
-export default PdfForm;
+    connection.end();
+  } else {
+    res.status(405).end(); // Method Not Allowed
+  }
+}
