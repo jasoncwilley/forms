@@ -12,13 +12,27 @@ const PdfForm = ({ onTransactionComplete }) => {
     userId: '',
     pdfFile: null,
   });
-  const [txId, setTxId] = useState('');
   const [error, setError] = useState('');
+  const [txId, setTxId] = useState('');
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData({
+      ...formData,
+      [name]: value,
+    });
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    setFormData({
+      ...formData,
+      pdfFile: file,
+    });
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    // Your form validation logic here
-
     try {
       const txId = await createTransaction(formData);
       setTxId(txId);
@@ -45,38 +59,6 @@ const PdfForm = ({ onTransactionComplete }) => {
     }
   };
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: value,
-    });
-  };
-
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    setFormData({
-      ...formData,
-      pdfFile: file,
-    });
-  };
-
-  const handleTagChange = (e, index) => {
-    const newTags = [...formData.tags];
-    newTags[index] = e.target.value;
-    setFormData({
-      ...formData,
-      tags: newTags,
-    });
-  };
-
-  const handleAddTag = () => {
-    setFormData({
-      ...formData,
-      tags: [...formData.tags, ''],
-    });
-  };
-
   return (
     <div className={styles.container}>
       <h2>PDF Metadata Form</h2>
@@ -100,9 +82,9 @@ const PdfForm = ({ onTransactionComplete }) => {
         <div>
           <label>Tags:</label>
           {formData.tags.map((tag, index) => (
-            <input key={index} type="text" value={tag} onChange={(e) => handleTagChange(e, index)} />
+            <input key={index} type="text" value={tag} onChange={(e) => handleChange(e, index)} />
           ))}
-          <button type="button" onClick={handleAddTag}>Add Tag</button>
+          <button type="button" onClick={() => setFormData({ ...formData, tags: [...formData.tags, ''] })}>Add Tag</button>
         </div>
         <div>
           <label>Owner's Wallet:</label>
