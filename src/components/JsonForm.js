@@ -17,6 +17,7 @@ const MetadataForm = ({ txId }) => {
     tags: [''],
   });
   const [error, setError] = useState('');
+  const [metadataTxId, setMetadataTxId] = useState('');
 
   useEffect(() => {
     if (txId) {
@@ -79,6 +80,7 @@ const MetadataForm = ({ txId }) => {
 
     try {
       const txId = await createTransaction(formData);
+      setMetadataTxId(txId);
       setError('');
     } catch (error) {
       setError('Error submitting transaction: ' + error.message);
@@ -111,7 +113,7 @@ const MetadataForm = ({ txId }) => {
         </div>
         <div>
           <label>File Link:</label>
-          <input type="text" name="File.Link" value={formData.File.Link} onChange={handleChange} /> {/* Changed from 'pdfFile' to 'Link' */}
+          <input type="text" name="File.Link" value={formData.File.Link} onChange={handleChange} disabled />
         </div>
         <div>
           <label>Tags:</label>
@@ -123,6 +125,11 @@ const MetadataForm = ({ txId }) => {
         <button type="submit" className={styles.submitButton}>Submit</button>
       </form>
       {error && <p className={styles.error}>{error}</p>}
+      {metadataTxId && (
+        <p className={styles.txId}>
+          Metadata Transaction ID: <a href={`https://arweave.net/${metadataTxId}`} target="_blank" rel="noopener noreferrer">https://arweave.net/{metadataTxId}</a>
+        </p>
+      )}
     </div>
   );
 };
